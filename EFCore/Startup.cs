@@ -4,6 +4,25 @@ using Northwind.EntityModels;
 using Northwind.Reposotories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.OpenApi.Models;
+//using Prometheus;
+using System.Diagnostics;
+using System.Net.NetworkInformation;
+
+
+
+//using OpenTelemetry.Logs;
+
+using OpenTelemetry.Metrics;
+//using OpenTelemetry.Resources;
+//using OpenTelemetry.Trace;
+//using OpenTelemetry;
+//using OpenTelemetry.Exporter;
+using OpenTelemetry.Instrumentation.AspNetCore;
+
+using OpenTelemetry.Trace;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Resources;
+using OpenTelemetry;
 
 
 public class Startup
@@ -17,6 +36,27 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        var serviceName = "EFCoreMostafaNew2";
+        var serviceVersion = "1.0";
+
+        var resourceBuilder =
+            ResourceBuilder
+                .CreateDefault()
+                .AddService(serviceName: serviceName, serviceVersion: serviceVersion)
+                .AddAttributes(new Dictionary<string, object>
+                {
+                    ["environment.name"] = "development",
+                    ["team.name"] = "backend"
+                })
+                .AddTelemetrySdk();
+
+        Sdk.CreateTracerProviderBuilder()
+            .AddOtlpExporter()
+            .SetResourceBuilder(resourceBuilder)
+            .AddConsoleExporter()
+            .AddAspNetCoreInstrumentation().Build();
+
+
         services.AddControllers();
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -35,6 +75,7 @@ public class Startup
 
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        
 
         IMapper mapper = MappingConfig.RegisterMaps().CreateMapper();
         services.AddSingleton(mapper);
@@ -62,6 +103,8 @@ public class Startup
             app.UseExceptionHandler("/Error");
             app.UseHsts();
         }
+
+        //app.UseMetricServer("/metrics");
 
         app.UseHttpsRedirection();
 
